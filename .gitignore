@@ -2,8 +2,10 @@
 *.pyc
 *.pth
 *.pkl
+*.pcd
 cache/
 test/
 experiment_records/
 logs/
 GroundingDINO/
+vis/

@@ -26,7 +26,7 @@ class RealEnv:
             process_depth=False,
             use_robot=True,
             use_wrist_cam=True,
-            num_fixed_cams=4,
+            num_fixed_cams=1,
             gripper_enable=False,
             verbose=False,
         ):
@@ -37,7 +37,8 @@ class RealEnv:
         self.vis_dir = 'vis'
 
         # self.WRIST = '213622252214' # Previous camera serial number
-        self.WRIST = '246322303938'
+        # Allow override via env var when moving between machines.
+        self.WRIST = os.environ.get("KUDA_WRIST_SERIAL", "308222301365")
         num_cams = num_fixed_cams + (1 if use_wrist_cam else 0)
         self.serial_numbers = SingleRealsense.get_connected_devices_serial()
         assert len(self.serial_numbers) == num_cams, "Is the number of cameras connected to the machine same as the num_fixed_cams parameter?"
@@ -74,11 +75,11 @@ class RealEnv:
         self.aruco_detector = cv2.aruco.ArucoDetector(calibration_dictionary, calibration_parameters)
         self.calibration_board = cv2.aruco.GridBoard(
             (5, 7),
-            markerLength=0.03439,
-            markerSeparation=0.00382,
+            markerLength=0.0275,#0.03439,
+            markerSeparation=0.008,#0.00382,
             dictionary=calibration_dictionary,
         )
-
+ 
         self.R_cam2world = None
         self.t_cam2world = None
         self.R_base2world = None

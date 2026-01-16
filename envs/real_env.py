@@ -16,8 +16,8 @@ from envs.real_world.camera.multi_realsense import MultiRealsense, SingleRealsen
 from perception.predictor import GroundingSegmentPredictor
 
 # Important!!! Check before experiment
-# EE_LENGTH = 0.173 # stick
-EE_LENGTH = 0.104 # pusher
+EE_LENGTH = 0.173 # stick
+# EE_LENGTH = 0.104 # pusher
 Z_PUSHER = -0.062 # the lowest position of the pusher
 # scale between T mesh and the real T
 T_SCALE = 1.0
@@ -101,7 +101,7 @@ class RealEnv:
         self.realsense.start_recording(file_path, start_time=start_time)
 
     def initialize_robot(self):
-        self.robot = XArmAPI('192.168.1.209')
+        self.robot = XArmAPI('192.168.1.242')
         self.robot.motion_enable(enable=True)
         self.robot.set_mode(0)
         self.robot.set_state(state=0)

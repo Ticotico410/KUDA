@@ -8,8 +8,7 @@ import traceback
 class XARM6:
     def __init__(
         self, 
-        # interface="192.168.1.209",  # Previous setup robot IP
-        interface="192.168.1.228", 
+        interface="192.168.1.242", 
         init_pose=[196.2, -1.6, 434, 179.2, 0, 0.3],
         init_servo_angle=[0, -60, -30, 0, 90, 0],
         gripper_enable=False

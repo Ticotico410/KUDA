@@ -15,7 +15,7 @@ from planner.prompt_retriever import PromptRetriever
 
 
 class KUDAPlanner:
-    def __init__(self, env, config):
+    def __init__(self, env, config): 
         self.env = env
         self.config = config
         self.top_down_cam = self.config['top_down_cam']
@@ -213,7 +213,9 @@ class KUDAPlanner:
             model=self.config['model'],
             max_tokens=self.config['max_tokens']
         )['choices'][0]['message']['content']
+        print("\n========== GPT response start ==========")
         print(ret)
+        print("\n========== GPT response end ==========")
 
         targets = parse(ret)
         # get point clouds
@@ -281,6 +283,7 @@ class KUDAPlanner:
 
         # get the keypoints
         masks = predictor.mask_generation(img)
+        # remove the background mask
         masks.pop()
 
         annotated_points = []
@@ -322,7 +325,9 @@ class KUDAPlanner:
             model=self.config['model'],
             max_tokens=self.config['max_tokens']
         )['choices'][0]['message']['content']
+        print("\n========== GPT response start ==========")
         print(ret)
+        print("\n========== GPT response end ==========")
 
 
 def get_annotated_image(image, points, debug=False, mask=None):
