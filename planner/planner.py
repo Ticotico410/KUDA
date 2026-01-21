@@ -278,7 +278,16 @@ class KUDAPlanner:
             self.__call__(object, material, instruction, call_depth=call_depth+1)
 
     def demo_call(self, img, instruction, material='cube'):
-        predictor = GroundingSegmentPredictor(show_bbox=False, show_mask=True)
+        predictor = GroundingSegmentPredictor(
+            show_bbox=False,
+            show_mask=True,
+            use_sam_hq=True,
+            sam_checkpoint_path="perception/models/checkpoints/sam_vit_h_4b8939.pth",
+            sam_hq_checkpoint_path="perception/models/checkpoints/sam_hq_vit_h.pth",
+            config_path="perception/models/config/GroundingDINO_SwinT_OGC.py",
+            checkpoint_path="perception/models/checkpoints/groundingdino_swint_ogc.pth",
+            device="cuda",
+        )
         H, W = img.shape[:2]
 
         # get the keypoints

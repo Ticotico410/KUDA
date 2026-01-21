@@ -9,6 +9,12 @@ env:
   use_robot: True
   verbose: False
   num_points: 1000
+  use_sam_hq: true
+  sam_checkpoint_path: perception/models/checkpoints/sam_vit_h_4b8939.pth
+  sam_hq_checkpoint_path: perception/models/checkpoints/sam_hq_vit_h.pth
+  grounding_dino_config: perception/models/config/GroundingDINO_SwinT_OGC.py
+  grounding_dino_ckpt: perception/models/checkpoints/groundingdino_swint_ogc.pth
+  device: cuda
 
 planner:
   log_dir: *log_dir

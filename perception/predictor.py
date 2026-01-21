@@ -4,8 +4,27 @@ import cv2
 from .models.grounding_segment import GroundingSegment
 
 class GroundingSegmentPredictor:
-    def __init__(self, show_bbox=False, show_mask=False):
-        self.segment = GroundingSegment(show_bbox=show_bbox, show_mask=show_mask)
+    def __init__(
+        self,
+        show_bbox=False,
+        show_mask=False,
+        use_sam_hq=True,
+        sam_checkpoint_path=None,
+        sam_hq_checkpoint_path=None,
+        config_path=None,
+        checkpoint_path=None,
+        device="cuda",
+    ):
+        self.segment = GroundingSegment(
+            show_bbox=show_bbox,
+            show_mask=show_mask,
+            use_sam_hq=use_sam_hq,
+            sam_checkpoint_path=sam_checkpoint_path,
+            sam_hq_checkpoint_path=sam_hq_checkpoint_path,
+            config_path=config_path or "perception/models/config/GroundingDINO_SwinT_OGC.py",
+            checkpoint_path=checkpoint_path or "perception/models/checkpoints/groundingdino_swint_ogc.pth",
+            device=device,
+        )
 
     def predict(self, images, text):
         final_masks = []

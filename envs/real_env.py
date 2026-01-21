@@ -62,7 +62,16 @@ class RealEnv:
 
         self.setup_cameras()
 
-        self.predictor = GroundingSegmentPredictor(show_bbox=False, show_mask=False)
+        self.predictor = GroundingSegmentPredictor(
+            show_bbox=False,
+            show_mask=False,
+            use_sam_hq=env_config.use_sam_hq,
+            sam_checkpoint_path=env_config.sam_checkpoint_path,
+            sam_hq_checkpoint_path=env_config.sam_hq_checkpoint_path,
+            config_path=env_config.grounding_dino_config,
+            checkpoint_path=env_config.grounding_dino_ckpt,
+            device=env_config.device,
+        )
 
     # ======== start-stop API =============
     @property
