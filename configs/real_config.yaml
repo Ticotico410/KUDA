@@ -18,7 +18,7 @@ planner:
   temperature: 0.0
   model: gpt-4o
   max_tokens: 1024
-  top_down_cam: 2
+  top_down_cam: 0
   obs_x_center: 310
   obs_y_center: 196
   obs_x_scale: 0.6
@@ -26,3 +26,9 @@ planner:
   tracking_cam: 0
   close_loop: True
   use_retriever: True
+
+camera:
+  top_down_cam: '036322250488'
+  left_cam: '819612072758'
+  right_cam: '203522251843'
+  wrist_cam: '308222301365'

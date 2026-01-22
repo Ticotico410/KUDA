@@ -16,7 +16,7 @@ from envs.real_world.camera.multi_realsense import MultiRealsense, SingleRealsen
 from perception.predictor import GroundingSegmentPredictor
 
 # Important!!! Check before experiment
-EE_LENGTH = 0.173 # stick
+EE_LENGTH = 0.093 # 0.173 # stick
 # EE_LENGTH = 0.104 # pusher
 Z_PUSHER = -0.062 # the lowest position of the pusher
 # scale between T mesh and the real T

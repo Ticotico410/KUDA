@@ -9,7 +9,7 @@ class XARM6:
     def __init__(
         self, 
         interface="192.168.1.242", 
-        init_pose=[196.2, -1.6, 434, 179.2, 0, 0.3],
+        init_pose=[198.9, 0.0, 291.1, 180.0, 0.0, 0.0],
         init_servo_angle=[0, -60, -30, 0, 90, 0],
         gripper_enable=False
     ):

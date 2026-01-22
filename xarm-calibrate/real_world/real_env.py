@@ -26,7 +26,7 @@ class RealEnv:
             process_depth=False,
             use_robot=True,
             use_wrist_cam=True,
-            num_fixed_cams=1,
+            num_fixed_cams=3,
             gripper_enable=False,
             verbose=False,
         ):
@@ -36,9 +36,7 @@ class RealEnv:
         self.n_obs_steps = n_obs_steps
         self.vis_dir = 'vis'
 
-        # self.WRIST = '213622252214' # Previous camera serial number
-        # Allow override via env var when moving between machines.
-        self.WRIST = os.environ.get("KUDA_WRIST_SERIAL", "308222301365")
+        self.WRIST = '308222301365'
         num_cams = num_fixed_cams + (1 if use_wrist_cam else 0)
         self.serial_numbers = SingleRealsense.get_connected_devices_serial()
         assert len(self.serial_numbers) == num_cams, "Is the number of cameras connected to the machine same as the num_fixed_cams parameter?"
@@ -75,11 +73,11 @@ class RealEnv:
         self.aruco_detector = cv2.aruco.ArucoDetector(calibration_dictionary, calibration_parameters)
         self.calibration_board = cv2.aruco.GridBoard(
             (5, 7),
-            markerLength=0.0275,#0.03439,
-            markerSeparation=0.008,#0.00382,
+            markerLength=0.02630,
+            markerSeparation=0.0028,
             dictionary=calibration_dictionary,
         )
- 
+
         self.R_cam2world = None
         self.t_cam2world = None
         self.R_base2world = None
@@ -100,7 +98,8 @@ class RealEnv:
             [-0.013, -0.043, 0.152],
         ])
         self.gripper_point_opened += np.array([0, 0.01, 0])
-        self.bbox = np.array([[-0.45, 0.1], [-0.3, 0.55], [-0.2, 0.1]])  # bounding box of the workspace
+        # self.bbox = np.array([[-0.45, 0.1], [-0.3, 0.55], [-0.2, 0.1]])  # bounding box of the workspace
+        self.bbox = np.array([[-0.45, 0.1], [-1.2, 1.2], [-0.2, 0.1]])  # bounding box of the workspace
 
     # ======== start-stop API =============
     @property
@@ -226,17 +225,54 @@ class RealEnv:
         time.sleep(1)
 
         poses = [
-            [522.6,-1.6,279.5,179.2,0,0.3],
-            [494.3,133,279.5,179.2,0,-24.3],
-            [498.8,-127.3,314.9,179.3,0,31.1],
-            [589.5,16.6,292.9,-175,17,1.2],
-            [515.8,178.5,469.2,-164.3,17.5,-90.8],
-            [507.9,-255.5,248.5,-174.6,-16.5,50.3],
-            [507.9,258.2,248.5,-173.5,-8,-46.8],
-            [569,-155.6,245.8,179.5,3.7,49.7],
-            [570.8,-1.2,435,-178.5,52.3,-153.9],
-            [474.3,12.5,165.3,179.3,-15,0.3],
+            [372.5, 0.0, 244.1, 180.0, 0.0, 0.0],
+
+            [471.6, 0.0, 244.1, 180.0, 20.6, -20.0],
+            [471.6, 0.0, 244.1, 180.0, 20.6, 0.0],
+            [471.6, 0.0, 244.1, 180.0, 20.6, 20.0],
+
+            [471.6, 195.8, 244.1, 149.0, 20.6, -20.0],
+            [471.6, 195.8, 244.1, 149.0, 20.6, 0.0],
+            [471.6, 195.8, 244.1, 149.0, 20.6, 20.0],
+
+            [471.6, -181.2, 244.1, -164.9, 20.6, -20.0],
+            [471.6, -181.2, 244.1, -164.9, 20.6, 0.0],
+            [471.6, -181.2, 244.1, -164.9, 20.6, 20.0],
+
+            [382.8, -181.2, 290.4, -164.7, 4.2, -20.0],
+            [382.8, -181.2, 290.4, -164.7, 4.2, 0.0],
+            [382.8, -181.2, 290.4, -164.7, 4.2, 20.0],
+
+            [469.1, -181.2, 290.4, -163.1, 15.5, -20.0],
+            [469.1, -181.2, 290.4, -163.1, 15.5, 0.0],
+            [469.1, -181.2, 290.4, -163.1, 15.5, 20.0],
+
+            [469.1, 58.6, 290.4, 172.4, 15.5, -20.0],
+            [469.1, 58.6, 290.4, 172.4, 15.5, 0.0],
+            [469.1, 58.6, 290.4, 172.4, 15.5, 20.0],
+
+            [412.3, 254.2, 290.4, 144.0, 15.5, -20.0],
+            [412.3, 254.2, 290.4, 144.0, 15.5, 0.0],
+            [412.3, 254.2, 290.4, 144.0, 15.5, 20.0],
+
+            [412.3, 254.2, 181.2, 144.0, 15.5, -20.0],
+            [412.3, 254.2, 181.2, 144.0, 15.5, 0.0],
+            [412.3, 254.2, 181.2, 144.0, 15.5, 20.0],
+
+            [469.1, 58.6, 181.2, 172.4, 15.5, -20.0],
+            [469.1, 58.6, 181.2, 172.4, 15.5, 0.0],
+            [469.1, 58.6, 181.2, 172.4, 15.5, 20.0],
+
+            [382.8, -181.2, 181.2, -164.7, 4.2, -20.0],
+            [382.8, -181.2, 181.2, -164.7, 4.2, 0.0],
+            [382.8, -181.2, 181.2, -164.7, 4.2, 20.0],
+
+            [471.6, -181.2, 181.2, -164.9, 20.6, -20.0],
+            [471.6, -181.2, 181.2, -164.9, 20.6, 0.0],
+            [471.6, -181.2, 181.2, -164.9, 20.6, 20.0],
         ]
+
+
         R_gripper2base = []
         t_gripper2base = []
         R_board2cam = []

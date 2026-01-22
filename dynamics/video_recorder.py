@@ -48,8 +48,8 @@ class VideoRecorder(mp.Process):
                 if abs(out['timestamp'][j] - target_timestamp) <= 0.5 * (1. / record_fps) or \
                         (j == 0 and out['timestamp'][j] > target_timestamp + 0.5 * (1. / record_fps)):
                     timestamps_str = " ".join([f"{t:.3f}" for t in out["timestamp"]])
-                    print(f'Camera {i}, step {out["step_idx"][j]}, time {out["timestamp"][j]:.3f}', end='\t')
-                    print(f'all steps {out["step_idx"]}, all timestamps {timestamps_str}')
+                    # print(f'Camera {i}, step {out["step_idx"][j]}, time {out["timestamp"][j]:.3f}', end='\t')
+                    #print(f'all steps {out["step_idx"]}, all timestamps {timestamps_str}')
 
                     cv2.imwrite(f'{save_path}/{next_step_idx:06}.jpg', out['color'][j])
                     cv2.imwrite(f'{save_path}/{next_step_idx:06}_depth.png', out['depth'][j])

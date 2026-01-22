@@ -51,14 +51,14 @@ for serial_number in serial_numbers:
     pcds.append(pcd)
 
 # Wrist camera
-serial_number = '246322303938'
+serial_number = '308222301365'
 
 hand_eye = pickle.load(open('real_world/calibration_result/calibration_handeye_result.pkl', 'rb'))
 gripper_to_camera = np.concatenate((hand_eye['R_gripper2cam'], np.expand_dims(hand_eye['t_gripper2cam'], axis=1)), axis=1)
 gripper_to_camera = np.concatenate((gripper_to_camera, np.array([[0, 0, 0, 1]])), axis=0)
 camera_to_gripper = np.linalg.inv(gripper_to_camera)
 
-robot = XArmAPI('192.168.1.228')
+robot = XArmAPI('192.168.1.242')
 robot.motion_enable(enable=True)
 robot.set_mode(0)
 robot.set_state(state=0)

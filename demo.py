@@ -9,10 +9,7 @@ from planner.planner import KUDAPlanner
 from utils import get_config_real
 
 openai.api_key = None
-<<<<<<< HEAD
 
-=======
->>>>>>> 232c0b7 (Calibration setup finish.)
 
 config = get_config_real('configs/real_config.yaml')
 planner_config = config.planner

@@ -59,7 +59,7 @@ def main():
     calibrate = True  # whether to calibrate the camera. If false, use the pre-calibrated camera parameters
     use_wrist_cam = True  # whether the wrist camera is connected. When doing hand-eye calibration, must be True
     gripper_enable = False  # whether to use the gripper. If changed to other end effectors, should be False
-    num_fixed_cams = 1  # the number of fixed cameras connected to the computer
+    num_fixed_cams = 3  # the number of fixed cameras connected to the computer
 
     env = RealEnv(
         WH=[1280, 720],
