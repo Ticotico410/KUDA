@@ -10,7 +10,6 @@ from utils import get_config_real
 
 openai.api_key = None
 
-
 config = get_config_real('configs/real_config.yaml')
 env_config = config.env
 env = RealEnv(env_config)
@@ -21,14 +20,16 @@ print(env.serial_numbers)
 
 planner_config = config.planner
 planner = KUDAPlanner(env, planner_config)
-# object = material = 'rope'
-object = material = 'cube'
-# object = material = 'T_shape'
 
+# Material settings
+object = material = 'cube'
+# object = material = 'rope'
+# object = material = 'T_shape'
 # object = 'coffee_beans'
 # object = 'candy'
 # material = 'granular'
 
+# Instruction settings
 # instruction = 'straighten the rope'
 # instruction = 'make the rope into a "V" shape'
 # instruction = 'put two ends of the rope together'
@@ -39,7 +40,7 @@ object = material = 'cube'
 # instruction = "move the blue T into the white square"
 # instruction = "move all the red cubes together"
 
-instruction = "move the red cube to the white square"
+instruction = "move two red cubes together"
 
 
 planner(object, material, instruction)

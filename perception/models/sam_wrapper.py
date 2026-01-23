@@ -1,6 +1,7 @@
 from segment_anything import (
     build_sam,
     build_sam_hq,
+    sam_model_registry,
     SamAutomaticMaskGenerator,
     SamPredictor,
 )
@@ -13,6 +14,7 @@ class SAMWrapper:
     def __init__(
         self,
         use_sam_hq,
+        sam_model,
         sam_checkpoint_path=None,
         sam_hq_checkpoint_path=None,
         device="cuda",
@@ -20,9 +22,12 @@ class SAMWrapper:
         self.device = device
         # Build the model
         if use_sam_hq:
+            print(f"Using SAM-HQ with checkpoint {sam_hq_checkpoint_path}")
             model = build_sam_hq(checkpoint=sam_hq_checkpoint_path)
         else:
-            model = build_sam(checkpoint=sam_checkpoint_path)
+            print(f"Using SAM with checkpoint {sam_checkpoint_path}")
+            # model = build_sam(checkpoint=sam_checkpoint_path)
+            model = sam_model_registry[sam_model](checkpoint=sam_checkpoint_path)
         model.to(device)
         # Following the hyperparameters setting from https://github.com/facebookresearch/segment-anything/blob/main/notebooks/automatic_mask_generator_example.ipynb
         # The original ConceptFusion setting focus more on the object level, lack of fine-grained details https://github.com/concept-fusion/concept-fusion/blob/main/examples/extract_conceptfusion_features.py

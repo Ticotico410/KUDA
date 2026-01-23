@@ -1,6 +1,7 @@
 log_dir: &log_dir logs
 
 env:
+  device: cuda
   WH: [640, 480]
   capture_fps: 15
   obs_fps: 15
@@ -10,6 +11,18 @@ env:
   verbose: False
   num_points: 1000
 
+  use_sam_hq: false
+  sam_hq_checkpoint_path: perception/models/checkpoints/sam_hq_vit_h.pth
+
+  sam_model: vit_b
+  sam_checkpoint_path: perception/models/checkpoints/sam_vit_b_01ec64.pth
+
+  # sam_model: vit_h
+  # sam_checkpoint_path: perception/models/checkpoints/sam_vit_h_4b8939.pth
+
+  grounding_dino_config: perception/models/config/GroundingDINO_SwinT_OGC.py
+  grounding_dino_ckpt: perception/models/checkpoints/groundingdino_swint_ogc.pth
+
 planner:
   log_dir: *log_dir
   prompt_fname: low_level_prompt
@@ -18,17 +31,18 @@ planner:
   temperature: 0.0
   model: gpt-4o
   max_tokens: 1024
+  obs_x_center: 320 # 310
+  obs_y_center: 240 # 196
+  obs_x_scale: 0.8 # 0.6
+  obs_y_scale: 0.8 # 0.42
   top_down_cam: 0
-  obs_x_center: 310
-  obs_y_center: 196
-  obs_x_scale: 0.6
-  obs_y_scale: 0.42
-  tracking_cam: 0
+  tracking_cam: 2
   close_loop: True
   use_retriever: True
 
 camera:
-  top_down_cam: '036322250488'
-  left_cam: '819612072758'
-  right_cam: '203522251843'
+# ['036322250488', '203522251843', '819612072758']
+  top_down_cam: '036322250488' # 0
+  right_cam: '203522251843'    # 1
+  left_cam: '819612072758'     # 2
   wrist_cam: '308222301365'

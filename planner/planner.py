@@ -2,9 +2,12 @@ import openai
 import os
 import numpy as np
 import open3d as o3d
+import copy
 from copy import deepcopy
 from PIL import Image
 import re
+import time
+import copy
 import cv2
 from utils import load_prompt, encode_image
 from utils import farthest_point_sampling, fps_rad_idx, truncate_points
@@ -166,7 +169,8 @@ class KUDAPlanner:
         return img
 
     def __call__(self, object, material, instruction, call_depth=0):
-        rgbs, _, depths, _ = self.env.get_rgb_depth_pc()
+        t_start = time.perf_counter()
+        rgbs, _, depths, _ = self.env.get_rgb_depth_pc(return_pcd=False, camera_index=None)
         obs = rgbs[self.top_down_cam]
         H, W = obs.shape[:2]
         cropped_obs = self._crop_obs(obs)
@@ -199,13 +203,15 @@ class KUDAPlanner:
                 center = positions.mean(axis=0)
                 annotated_points.append(center)
         # global radius
-        global_radius = 40
+        global_radius = 100 # 40
         annotated_points, _ = fps_rad_idx(np.array(annotated_points), global_radius)
 
         # get the annotated image
         annotated_image = get_annotated_image(cropped_obs, annotated_points, debug=False, mask=masks)
 
         # GPT planning
+        print("\n" + "="*50 + " GPT response start " + "="*50 + "\n")
+        print(f"Step: {call_depth}")
         messages = self._build_prompt(annotated_image, instruction)
         ret = openai.ChatCompletion.create(
             messages=messages,
@@ -213,72 +219,128 @@ class KUDAPlanner:
             model=self.config['model'],
             max_tokens=self.config['max_tokens']
         )['choices'][0]['message']['content']
-        print("\n========== GPT response start ==========")
         print(ret)
-        print("\n========== GPT response end ==========")
-
         targets = parse(ret)
-        # get point clouds
+
+        # Extract target specifications from GPT response
+        target_keys, target_values = list(targets.keys()), list(targets.values())
+        print(f"[Target keys] {target_keys}")
+        print(f"[Target values] {target_values}")
+
+        # get point clouds under robot base frame
         object_pcds_list = [self.env.get_points_by_name(object, camera_index=self.top_down_cam)]
         object_pcds_flat = [item for sublist in object_pcds_list for item in sublist]
-        if material == 'rope':
-            object_model_pcds = truncate_points(object_pcds_flat, fps_radius=0.02)
-        elif material == 'cube':
+        if material == 'cube':
             object_model_pcds = object_pcds_flat
         elif material == 'T_shape':
             object_model_pcds = object_pcds_flat
+        elif material == 'rope':
+            object_model_pcds = truncate_points(object_pcds_flat, fps_radius=0.02)
         elif material == 'granular':
             object_model_pcds = truncate_points(object_pcds_flat, fps_radius=0.02)
         object_points = np.concatenate(object_model_pcds, axis=0)
-        # get new target specifications
-        target_keys, target_values = list(targets.keys()), list(targets.values())
+
+        # Rematch the target indices
         target_indices = []
         destinations = []
-        # rematch the target indices
         for target_index_orig in target_keys:
+            # map the keypoints to the 3D space in robot base frame
             image_point = self._ground_point(annotated_points[target_index_orig], W, H)
             annotated_3d_point = self.env.ground_position(self.top_down_cam, depth, image_point[0], image_point[1])
-            # find nearest point in object_state
+            
+            # find nearest point in object_points
             dist = np.linalg.norm(object_points - annotated_3d_point, axis=1)
             target_index = np.argmin(dist)
             target_indices.append(target_index)
-        # get the destinations
+            print(f"[Number of target keypoints] {len(target_indices)}")
+
+        # Get the destinations
+        reference_points = []
+        destination_points = []
         for reference_index, array in target_values:
             if reference_index == -1:
                 image_point = self._ground_point([W // 2, H // 2], W, H)
             else:
                 image_point = self._ground_point(annotated_points[reference_index], W, H)
             annotated_3d_point = self.env.ground_position(self.top_down_cam, depth, image_point[0], image_point[1])
+        
             # coordinate transformation
             delta = np.array([-array[1], array[0], array[2]], dtype=np.float32)
-            delta /= 100
+            delta /= 100 # meter
             destination = annotated_3d_point + delta
             destinations.append(destination)
+            reference_points.append(annotated_3d_point)
+            destination_points.append(destination)
+
+        # Save the target specification
         target_specification = (target_indices, destinations)
 
-        # viz
+        # Visualize the target specification in point cloud
+        os.makedirs(f'{self.log_dir}/pcd', exist_ok=True)
+        
+        vis_points = copy.deepcopy(object_points)
+        colors = np.tile(np.array([0.6, 0.6, 0.6], dtype=np.float32), (object_points.shape[0], 1))
+
+        if object_points.size > 0 and (target_indices or reference_points):
+            if target_indices:
+                colors[target_indices] = np.array([1.0, 0.0, 0.0], dtype=np.float32)
+            if reference_points:
+                ref_points = np.array(reference_points, dtype=np.float32)
+                vis_points = np.concatenate([vis_points, ref_points], axis=0)
+                ref_colors = np.tile(np.array([0.0, 1.0, 0.0], dtype=np.float32), (len(reference_points), 1))
+                colors = np.concatenate([colors, ref_colors], axis=0)
+            vis_pcd = o3d.geometry.PointCloud()
+            vis_pcd.points = o3d.utility.Vector3dVector(vis_points)
+            vis_pcd.colors = o3d.utility.Vector3dVector(colors)
+            o3d.io.write_point_cloud(f'{self.log_dir}/pcd/target_specification_{call_depth}.pcd', vis_pcd)
+
+        # Save keypoints images
         os.makedirs(f'{self.log_dir}/low_level', exist_ok=True)
-        orig_save_image = Image.fromarray(cropped_obs[..., ::-1])
-        orig_save_image.save(f'{self.log_dir}/low_level/orig_{call_depth}.png')
+        # orig_save_image = Image.fromarray(cropped_obs[..., ::-1])
+        # orig_save_image.save(f'{self.log_dir}/low_level/origin_{call_depth}.png')
+
         annotated_save_image = Image.fromarray(annotated_image[..., ::-1])
         annotated_save_image.save(f'{self.log_dir}/low_level/annotated_{call_depth}.png')
-        vis_image = self._view_specification(annotated_image, object_points, target_specification)
-        save_image = Image.fromarray(vis_image[..., ::-1])
-        save_image.save(f'{self.log_dir}/low_level/targets_{call_depth}.png')
-        # save gpt response
+
+        # vis_image = self._view_specification(annotated_image, object_points, target_specification)
+        # save_image = Image.fromarray(vis_image[..., ::-1])
+        # save_image.save(f'{self.log_dir}/low_level/targets_{call_depth}.png')
+
+        # Save GPT response
         with open(f'{self.log_dir}/low_level/gpt_response_{call_depth}.txt', 'w') as f:
             f.write(ret)
 
-        closed_loop_plan(
-            object_points, target_specification, object, material, self.env,
-            self.top_down_cam, self.tracking_cam, self.log_dir,
-            track_as_state=False, target_pcd=self.target_pcd
-        )
-        if self.close_loop:
+        print(f"[Time for each step] {time.perf_counter() - t_start:.3f}s")
+        print("\n" + "="*50 + " GPT response ended " + "="*50 + "\n")
+        # closed_loop_plan(
+        #     object_points, target_specification, object, material, self.env,
+        #     self.top_down_cam, self.tracking_cam, self.log_dir,
+        #     track_as_state=False, target_pcd=self.target_pcd
+        # )
+        if self.close_loop and call_depth < 0:
             self.__call__(object, material, instruction, call_depth=call_depth+1)
+        else:
+            pass
 
     def demo_call(self, img, instruction, material='cube'):
-        predictor = GroundingSegmentPredictor(show_bbox=False, show_mask=True)
+        predictor = GroundingSegmentPredictor(
+            show_bbox=False,
+            show_mask=True,
+
+            use_sam_hq=False,
+            sam_hq_checkpoint_path="perception/models/checkpoints/sam_hq_vit_h.pth",
+
+            sam_model="vit_b",
+            sam_checkpoint_path="perception/models/checkpoints/sam_vit_b_01ec64.pth",
+
+            # sam_model="vit_h",
+            # sam_checkpoint_path="perception/models/checkpoints/sam_vit_h_4b8939.pth",
+
+            config_path="perception/models/config/GroundingDINO_SwinT_OGC.py",
+            checkpoint_path="perception/models/checkpoints/groundingdino_swint_ogc.pth",
+
+            device="cuda",
+        )
         H, W = img.shape[:2]
 
         # get the keypoints
@@ -310,7 +372,7 @@ class KUDAPlanner:
                 center = positions.mean(axis=0)
                 annotated_points.append(center)
         # global radius
-        global_radius = 150
+        global_radius = 100
         annotated_points, _ = fps_rad_idx(np.array(annotated_points), global_radius)
 
         # get the annotated image

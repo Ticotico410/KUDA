@@ -16,7 +16,7 @@ from envs.real_world.camera.multi_realsense import MultiRealsense, SingleRealsen
 from perception.predictor import GroundingSegmentPredictor
 
 # Important!!! Check before experiment
-EE_LENGTH = 0.093 # 0.173 # stick
+EE_LENGTH = 0.093 #0.173 # stick
 # EE_LENGTH = 0.104 # pusher
 Z_PUSHER = -0.062 # the lowest position of the pusher
 # scale between T mesh and the real T
@@ -31,7 +31,7 @@ class RealEnv:
         self.capture_fps = env_config.capture_fps
         self.obs_fps = env_config.obs_fps
         self.n_obs_steps = env_config.n_obs_steps
-        self.sample_points = env_config.num_points
+        self.sample_points = env_config.num_points # 1000
         # workspace bounds
         self.workspace_bounds_min = np.array([0.25, -0.3, -0.08])
         self.workspace_bounds_max = np.array([0.65, 0.3, 0.25])
@@ -62,7 +62,17 @@ class RealEnv:
 
         self.setup_cameras()
 
-        self.predictor = GroundingSegmentPredictor(show_bbox=False, show_mask=False)
+        self.predictor = GroundingSegmentPredictor(
+            show_bbox=False,
+            show_mask=False,
+            use_sam_hq=env_config.use_sam_hq,
+            sam_model=env_config.sam_model,
+            sam_checkpoint_path=env_config.sam_checkpoint_path,
+            sam_hq_checkpoint_path=env_config.sam_hq_checkpoint_path,
+            config_path=env_config.grounding_dino_config,
+            checkpoint_path=env_config.grounding_dino_ckpt,
+            device=env_config.device,
+        )
 
     # ======== start-stop API =============
     @property
@@ -374,7 +384,9 @@ class RealEnv:
                     obj_pcd.estimate_normals()
                 return [np.array([np.mean(np.asarray(obj_pcd.points), axis=0) for obj_pcd in obj_pcds])], [np.array([np.mean(np.asarray(obj_pcd.normals), axis=0) for obj_pcd in obj_pcds])]
             else:
-                return [np.array([np.mean(np.asarray(obj_pcd.points), axis=0) for obj_pcd in obj_pcds])]
+                # return [np.array([np.mean(np.asarray(obj_pcd.points), axis=0) for obj_pcd in obj_pcds])]
+                return [np.concatenate([np.asarray(obj_pcd.points) for obj_pcd in obj_pcds], axis=0)]
+
 
         # for coffee_beans, we simply fuse all pcds as one object
         if "coffee_beans" in query_name or "candy" in query_name:

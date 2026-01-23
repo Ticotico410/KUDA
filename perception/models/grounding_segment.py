@@ -10,11 +10,12 @@ class GroundingSegment:
         self,
         # Parameters for SAM
         use_sam_hq=True,
-        sam_checkpoint_path="perception/models/checkpoints/sam_vit_h_4b8939.pth",
-        sam_hq_checkpoint_path="perception/models/checkpoints/sam_hq_vit_h.pth",
+        sam_model=None,
+        sam_checkpoint_path=None,
+        sam_hq_checkpoint_path=None,
         # Parameters for GroundingDINO
-        config_path="perception/models/config/GroundingDINO_SwinT_OGC.py",
-        checkpoint_path="perception/models/checkpoints/groundingdino_swint_ogc.pth",
+        config_path=None,
+        checkpoint_path=None,
         # Other parameters
         show_bbox=False,
         show_mask=False,
@@ -22,6 +23,7 @@ class GroundingSegment:
     ):
         self.sam = SAMWrapper(
             use_sam_hq=use_sam_hq,
+            sam_model=sam_model,
             sam_checkpoint_path=sam_checkpoint_path,
             sam_hq_checkpoint_path=sam_hq_checkpoint_path,
             device=device,

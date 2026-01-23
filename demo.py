@@ -8,22 +8,22 @@ import openai
 from planner.planner import KUDAPlanner
 from utils import get_config_real
 
-openai.api_key = None
 
+openai.api_key = None
 
 config = get_config_real('configs/real_config.yaml')
 planner_config = config.planner
 env = None
 planner = KUDAPlanner(env, planner_config)
-img = Image.open('prompts/random_0.jpg')
+img = Image.open('prompts/random_1.jpg')
 
 # TODO: test
 # img = Image.open('prompts/test.jpg')
 img = np.array(img)[:, :, ::-1] # in BGR format
 
-instruction = "divide the chessmen into two groups based on their color"
-# instruction = "gather the purple earplugs together"
-# instruction = "push the T-shaped object first to the right side and then to the green center on the image"
+# instruction = "divide the chessmen into two groups based on their color"
+instruction = "gather the purple earplugs together"
+# instruction = "push the T-shaped object first to the green point on the image"
 
 planner.demo_call(img, instruction)
 
