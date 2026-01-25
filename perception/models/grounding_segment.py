@@ -34,14 +34,14 @@ class GroundingSegment:
         self.show_bbox = show_bbox
         self.show_mask = show_mask
 
-    def plot_bounding_box(self, img, bbox, phrase, title='Bounding Box'):
+    def plot_bounding_box(self, img, bbox, phrase, title='Bounding Box', show=True):
         img = img.copy()
         bbox = bbox.numpy().astype(int)
         cv2.rectangle(
             img,
             (bbox[0], bbox[1]),
             (bbox[2], bbox[3]),
-            (255, 0, 0),
+            (0, 255, 0),
             2
         )
         cv2.putText(
@@ -50,14 +50,16 @@ class GroundingSegment:
             (bbox[0], bbox[3]),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.5,
-            (255, 0, 0),
+            (0, 0, 255),
             2
         )
-        img = Image.fromarray(img)
-        img.show(title)
+        if show:
+            Image.fromarray(img).show(title)
+        return img
 
-    def plot_mask(self, img, mask, random_color=False, title='Mask'):
-        mask = mask.cpu().numpy()
+    def plot_mask(self, img, mask, random_color=False, title='Mask', show=True):
+        if hasattr(mask, "cpu"):
+            mask = mask.cpu().numpy()
         if random_color:
             color = np.random.random(3)
         else:
@@ -66,8 +68,9 @@ class GroundingSegment:
         mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
         mask_image = (mask_image * 255).astype(np.uint8)
         img_vis = cv2.add(img, mask_image)
-        img_vis = Image.fromarray(img_vis)
-        img_vis.show(title)
+        if show:
+            Image.fromarray(img_vis).show(title)
+        return img_vis
 
     def run(self, img, text, only_max=True):
         boxes_filt, pred_phrases = self.grounding_dino.get_grounding_output(

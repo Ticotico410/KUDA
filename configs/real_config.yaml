@@ -11,7 +11,7 @@ env:
   verbose: False
   num_points: 1000
 
-  use_sam_hq: false
+  use_sam_hq: False
   sam_hq_checkpoint_path: perception/models/checkpoints/sam_hq_vit_h.pth
 
   sam_model: vit_b
@@ -39,10 +39,11 @@ planner:
   tracking_cam: 2
   close_loop: True
   use_retriever: True
+  mask_type: 'groundingdino' # 'sam'
 
 camera:
-# ['036322250488', '203522251843', '819612072758']
-  top_down_cam: '036322250488' # 0
-  right_cam: '203522251843'    # 1
-  left_cam: '819612072758'     # 2
-  wrist_cam: '308222301365'
+# serial number sequence for fixed cameras: ['036322250488', '203522251843', '819612072758']
+  front_cam:    '036322250488' # 0 (top-down)
+  right_cam:    '203522251843' # 1 (tracking)
+  left_cam :    '819612072758' # 2 (not being used)
+  wrist_cam:    '308222301365' # (hand-eye calibration)

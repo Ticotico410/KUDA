@@ -35,5 +35,5 @@ class PromptRetriever:
         scores = image_scores + self.text_weight * text_scores
 
         top_k = scores.topk(self.top_k).indices.cpu().numpy()
-        print("Matching prompts:", top_k)
+        print(f"Matching prompts: {top_k}\n")
         return [examples[index] for index in top_k]

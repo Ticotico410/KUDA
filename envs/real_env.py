@@ -349,12 +349,13 @@ class RealEnv:
         """
         Get sampled points from the cameras queried by object name.
         """
-        points_to_sample = self.sample_points if num_points is None else num_points
+        num_points = self.sample_points if num_points is None else num_points
+
         query_name = query_name.lower()
 
         sampled_points, sampled_normals = [], []
         rgb_images, _, depths, _ = self.get_rgb_depth_pc(camera_index=camera_index)
-        masks = self.predictor.predict(rgb_images, query_name)
+        _, _, masks = self.predictor.predict(rgb_images, query_name)
 
         obj_pcds = self._get_transformed_object_pcd(depths, masks, camera_index=camera_index, debug=debug) # Visualize this point cloud https://chat.openai.com/share/b2405a32-3a8c-47f2-8cee-c387ef6ef5e4
         
@@ -535,8 +536,8 @@ class RealEnv:
         return image_points
 
     def ground_position(self, i, depth, x, y):
-        depth = depth / 1000
         "ground image position to world position on the table"
+        depth = depth / 1000
         camera_intrinsic = self.get_intrinsic(i)
         z_cam = depth[int(y), int(x)]
         image_point = np.array([x, y, 1]) * z_cam

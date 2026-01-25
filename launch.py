@@ -40,7 +40,7 @@ object = material = 'cube'
 # instruction = "move the blue T into the white square"
 # instruction = "move all the red cubes together"
 
-instruction = "move two red cubes together"
+instruction = "move two red cubes to the center of the white square"
 
 
 planner(object, material, instruction)

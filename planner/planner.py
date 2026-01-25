@@ -9,6 +9,7 @@ import re
 import time
 import copy
 import cv2
+import torch
 from utils import load_prompt, encode_image
 from utils import farthest_point_sampling, fps_rad_idx, truncate_points
 
@@ -22,13 +23,13 @@ class KUDAPlanner:
         self.env = env
         self.config = config
         self.top_down_cam = self.config['top_down_cam']
+        self.tracking_cam = self.config['tracking_cam']
         self.obs_x_center = self.config['obs_x_center']
         self.obs_y_center = self.config['obs_y_center']
         self.obs_x_scale = self.config['obs_x_scale']
         self.obs_y_scale = self.config['obs_y_scale']
-
-        self.tracking_cam = self.config['tracking_cam']
         self.close_loop = self.config['close_loop']
+        self.mask_type = self.config['mask_type']
         self.log_dir = self.config['log_dir']
         os.makedirs(self.log_dir, exist_ok=True)
 
@@ -158,14 +159,31 @@ class KUDAPlanner:
         y_origin = y_min + int(point[1] * self.obs_y_scale)
         return x_origin, y_origin
 
+    # def _view_specification(self, image, object_points, target_specification):
+    #     img = deepcopy(image)
+    #     for index, destination in zip(*target_specification):
+    #         start = object_points[index]
+    #         start_image, end_image = self.env.world_to_viewport([start, destination], self.top_down_cam)
+    #         start_crop_image, end_crop_image = self._apply_cropped_transform([[start_image, end_image]], img.shape[1], img.shape[0])[0]
+    #         # draw an arrow from start to end
+    #         cv2.arrowedLine(img, (int(start_crop_image[0]), int(start_crop_image[1])), (int(end_crop_image[0]), int(end_crop_image[1])), (0, 0, 255), 2)
+    #     return img
+
     def _view_specification(self, image, object_points, target_specification):
         img = deepcopy(image)
         for index, destination in zip(*target_specification):
             start = object_points[index]
             start_image, end_image = self.env.world_to_viewport([start, destination], self.top_down_cam)
-            start_crop_image, end_crop_image = self._apply_cropped_transform([[start_image, end_image]], img.shape[1], img.shape[0])[0]
-            # draw an arrow from start to end
-            cv2.arrowedLine(img, (int(start_crop_image[0]), int(start_crop_image[1])), (int(end_crop_image[0]), int(end_crop_image[1])), (0, 0, 255), 2)
+            start_crop_image, end_crop_image = self._apply_cropped_transform(
+                [[start_image, end_image]], img.shape[1], img.shape[0]
+            )[0]
+            cv2.arrowedLine(
+                img,
+                (int(start_crop_image[0]), int(start_crop_image[1])),
+                (int(end_crop_image[0]), int(end_crop_image[1])),
+                (0, 0, 255),
+                2,
+            )
         return img
 
     def __call__(self, object, material, instruction, call_depth=0):
@@ -177,12 +195,19 @@ class KUDAPlanner:
         depth = depths[self.top_down_cam]
 
         # get the keypoints
-        masks = self.env.get_all_masks(cropped_obs, debug=False)
-        masks.pop() # remove the background mask
-        annotated_points = []
+        if self.mask_type == 'sam':
+            print("Using original SAM segmentation to get the keypoints")
+            masks = self.env.get_all_masks(cropped_obs, debug=False)
+            masks.pop() # remove the background mask
+        elif self.mask_type == 'groundingdino':
+            print("Using GroundingDINO-filtered segmentation to get the keypoints")
+            boxes, phrases, masks_list = self.env.predictor.predict([cropped_obs], object)
+            masks = masks_list[0] if masks_list else []
+        else:
+            raise ValueError(f"Invalid mask type: {self.mask_type}")
+
         # keypoint hyperparameters
-        num_per_obj = 8
-        # Check before experiment
+        annotated_points = []
         radius = 200
         # for cubes, use the center to get the annotated points
         if material == 'cube':
@@ -224,8 +249,8 @@ class KUDAPlanner:
 
         # Extract target specifications from GPT response
         target_keys, target_values = list(targets.keys()), list(targets.values())
-        print(f"[Target keys] {target_keys}")
-        print(f"[Target values] {target_values}")
+        print(f"\nTarget keys: {target_keys}")
+        print(f"Target values: {target_values}")
 
         # get point clouds under robot base frame
         object_pcds_list = [self.env.get_points_by_name(object, camera_index=self.top_down_cam)]
@@ -252,7 +277,7 @@ class KUDAPlanner:
             dist = np.linalg.norm(object_points - annotated_3d_point, axis=1)
             target_index = np.argmin(dist)
             target_indices.append(target_index)
-            print(f"[Number of target keypoints] {len(target_indices)}")
+        print(f"Number of target keypoints: {len(target_indices)}")
 
         # Get the destinations
         reference_points = []
@@ -275,7 +300,7 @@ class KUDAPlanner:
         # Save the target specification
         target_specification = (target_indices, destinations)
 
-        # Visualize the target specification in point cloud
+        # Viz the target specification in point clouds
         os.makedirs(f'{self.log_dir}/pcd', exist_ok=True)
         
         vis_points = copy.deepcopy(object_points)
@@ -294,29 +319,49 @@ class KUDAPlanner:
             vis_pcd.colors = o3d.utility.Vector3dVector(colors)
             o3d.io.write_point_cloud(f'{self.log_dir}/pcd/target_specification_{call_depth}.pcd', vis_pcd)
 
-        # Save keypoints images
+        # Viz segmentation, keypoints and targets images each step
         os.makedirs(f'{self.log_dir}/low_level', exist_ok=True)
-        # orig_save_image = Image.fromarray(cropped_obs[..., ::-1])
+        orig_save_image = Image.fromarray(cropped_obs[..., ::-1])
         # orig_save_image.save(f'{self.log_dir}/low_level/origin_{call_depth}.png')
 
         annotated_save_image = Image.fromarray(annotated_image[..., ::-1])
-        annotated_save_image.save(f'{self.log_dir}/low_level/annotated_{call_depth}.png')
+        annotated_save_image.save(f'{self.log_dir}/low_level/keypoints_{call_depth}.png')
 
-        # vis_image = self._view_specification(annotated_image, object_points, target_specification)
-        # save_image = Image.fromarray(vis_image[..., ::-1])
-        # save_image.save(f'{self.log_dir}/low_level/targets_{call_depth}.png')
+        vis_image = self._view_specification(annotated_image, object_points, target_specification)
+        save_vis_image = Image.fromarray(vis_image[..., ::-1])
+        save_vis_image.save(f'{self.log_dir}/low_level/targets_{call_depth}.png')
+
+        # GroundingDINO open-vocabulary detected bounding boxes
+        if boxes is not None and hasattr(boxes, "shape") and boxes.shape[0] > 0:
+            boxes_vis = torch.as_tensor(boxes)
+            bbox_vis = cropped_obs.copy()
+            for i in range(boxes_vis.shape[0]):
+                bbox_vis = self.env.predictor.segment.plot_bounding_box(
+                    bbox_vis, boxes_vis[i], phrases[i] if phrases else "", show=False
+                )
+            save_bbox_image = Image.fromarray(bbox_vis[..., ::-1])
+            save_bbox_image.save(f'{self.log_dir}/low_level/bboxes_{call_depth}.png')
+
+        # GroundingDINO-filtered segmentation masks
+        mask_vis = cropped_obs.copy()
+        for mask in masks:
+            mask_vis = self.env.predictor.segment.plot_mask(mask_vis, mask, show=False)
+        save_mask_image = Image.fromarray(mask_vis[..., ::-1])
+        save_mask_image.save(f'{self.log_dir}/low_level/masks_{call_depth}.png')
 
         # Save GPT response
         with open(f'{self.log_dir}/low_level/gpt_response_{call_depth}.txt', 'w') as f:
             f.write(ret)
 
-        print(f"[Time for each step] {time.perf_counter() - t_start:.3f}s")
+        print(f"Time for each step: {time.perf_counter() - t_start:.3f}s")
         print("\n" + "="*50 + " GPT response ended " + "="*50 + "\n")
-        # closed_loop_plan(
-        #     object_points, target_specification, object, material, self.env,
-        #     self.top_down_cam, self.tracking_cam, self.log_dir,
-        #     track_as_state=False, target_pcd=self.target_pcd
-        # )
+
+        # planner execution
+        closed_loop_plan(
+            object_points, target_specification, object, material, self.env,
+            self.top_down_cam, self.tracking_cam, self.log_dir,
+            track_as_state=False, target_pcd=self.target_pcd
+        )
         if self.close_loop and call_depth < 0:
             self.__call__(object, material, instruction, call_depth=call_depth+1)
         else:

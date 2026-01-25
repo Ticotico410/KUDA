@@ -39,7 +39,7 @@ class GroundingSegmentPredictor:
             boxes, phrases, masks = self.segment.run(image, text)
             final_masks.append(masks)
         # shape (batch_size, num_boxes, *mask_shape)
-        return final_masks
+        return boxes, phrases, final_masks
 
     def mask_generation(self, image, debug=False):
         if type(image) == Image.Image:
