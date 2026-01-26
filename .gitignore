@@ -3,10 +3,11 @@
 *.pth
 *.pkl
 *.pcd
+*.png
+*.jpg
 cache/
 test/
 experiment_records/
 logs/
 GroundingDINO/
-vis/
-fixed_cam_captures/
+xarm-calibrate/vis/

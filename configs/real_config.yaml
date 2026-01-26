@@ -11,7 +11,7 @@ env:
   verbose: False
   num_points: 1000
 
-  use_sam_hq: False
+  use_sam_hq: True
   sam_hq_checkpoint_path: perception/models/checkpoints/sam_hq_vit_h.pth
 
   sam_model: vit_b

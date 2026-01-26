@@ -362,7 +362,7 @@ class KUDAPlanner:
             self.top_down_cam, self.tracking_cam, self.log_dir,
             track_as_state=False, target_pcd=self.target_pcd
         )
-        if self.close_loop and call_depth < 0:
+        if self.close_loop:
             self.__call__(object, material, instruction, call_depth=call_depth+1)
         else:
             pass
@@ -372,7 +372,7 @@ class KUDAPlanner:
             show_bbox=False,
             show_mask=True,
 
-            use_sam_hq=False,
+            use_sam_hq=True,
             sam_hq_checkpoint_path="perception/models/checkpoints/sam_hq_vit_h.pth",
 
             sam_model="vit_b",
@@ -432,9 +432,9 @@ class KUDAPlanner:
             model=self.config['model'],
             max_tokens=self.config['max_tokens']
         )['choices'][0]['message']['content']
-        print("\n========== GPT response start ==========")
+        print("\n" + "="*50 + " GPT response start " + "="*50 + "\n")
         print(ret)
-        print("\n========== GPT response end ==========")
+        print("\n" + "="*50 + " GPT response ended " + "="*50 + "\n")
 
 
 def get_annotated_image(image, points, debug=False, mask=None):

@@ -9,7 +9,6 @@ from planner.planner import KUDAPlanner
 from utils import get_config_real
 
 openai.api_key = None
-
 config = get_config_real('configs/real_config.yaml')
 env_config = config.env
 env = RealEnv(env_config)
@@ -40,7 +39,7 @@ object = material = 'cube'
 # instruction = "move the blue T into the white square"
 # instruction = "move all the red cubes together"
 
-instruction = "move two red cubes to the center of the white square"
+instruction = "move the red cube to the center of the white square"
 
 
 planner(object, material, instruction)

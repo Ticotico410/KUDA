@@ -48,7 +48,14 @@ class SingleRealsense(mp.Process):
         ):
         super().__init__()
 
+        # cap capture fps to avoid producer > consumer overflow
+        max_capture_fps = 30
+        if capture_fps > max_capture_fps:
+            capture_fps = max_capture_fps
         if put_fps is None:
+            put_fps = capture_fps
+        # keep publish rate aligned with capture rate
+        if put_fps > capture_fps:
             put_fps = capture_fps
         # if record_fps is None:
         #     record_fps = capture_fps
@@ -433,12 +440,14 @@ class SingleRealsense(mp.Process):
                         # put_data['timestamp'] = put_start_time + step_idx / self.put_fps
                         put_data['timestamp'] = receive_time
                         # print(step_idx, data['timestamp'])
-                        self.ring_buffer.put(put_data, wait=False)
+                        # throttle to desired publish rate to avoid buffer overflow
+                        self.ring_buffer.put(put_data, wait=True)
                 else:
                     step_idx = int((receive_time - put_start_time) * self.put_fps)
                     put_data['step_idx'] = step_idx
                     put_data['timestamp'] = receive_time
-                    self.ring_buffer.put(put_data, wait=False)
+                    # throttle to desired publish rate to avoid buffer overflow
+                    self.ring_buffer.put(put_data, wait=True)
                 if self.verbose:
                     print(f'[SingleRealsense {self.serial_number}] Transform time {time.time() - transform_start_time}')
 
